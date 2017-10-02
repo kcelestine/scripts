@@ -1,0 +1,22 @@
+#! /bin/bash
+
+#stopProcessGroup
+
+if [ -z "$1" ]
+  then
+    echo "Please input processGroupName or processGroupID"
+  else
+  	processGroupID=$(./getInfo | grep $1 | cut -f1)
+	config=$(cat config.json)
+	url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+	mainPG=$(echo $config | ./jq '.dev.flowProcessGroup' | sed "s/\"//g")
+	reqUrl="http://$url/nifi-api/flow/process-groups/$processGroupID"
+	payload=$(printf '{"id":"%s","state":"STOPPED"}' "$processGroupID")
+	resp=$(curl --silent "http://$url/nifi-api/flow/process-groups/$processGroupID" -X PUT -H "Origin: http://$url" -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.8' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H "Referer: http://$url/nifi/?processGroupId=root&componentIds=$processGroupID" -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary "$payload" --compressed)
+	if [[ $resp =~ "STOPPED" ]]; then
+    	echo "STOPPED SUCCESSFULLY";
+	else
+    	echo "SOMETHING AINT RIGHT";
+	fi
+fi
+

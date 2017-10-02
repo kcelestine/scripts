@@ -1,0 +1,21 @@
+#! /bin/bash
+
+# isNifiRunning
+
+# depending on where you run this, the config file is either in the current directory or in the directory above
+# determines where to locate the config file
+# config=$([[ "$PWD" =~ internals ]] && cat ../config.json || cat config.json)
+config=$(cat config.json)
+
+# extract the url and strip the quotes
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+
+echo "Checking if nifi is up"
+curl --silent "http://$url/nifi-api/" > /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "Nifi is not running!"
+    exit 1
+else
+	echo "Nifi is up!"
+fi	

@@ -1,0 +1,25 @@
+#! /bin/bash
+
+# getInfo
+
+config=$(cat config.json)
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+# get the processgroup to start from, if no argument, use processgroup from config
+if [ -z "$1" ]; then
+	    mainPG=$(echo $config | ./jq '.dev.flowProcessGroup' | sed "s/\"//g")
+	else
+		mainPG=$1
+	    #mainPG=$(./getUUID $1)
+fi
+
+reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+echo '******************************************************************************'
+echo 'CONNECTIONS                                                              '
+echo -e ""
+processGroups=$(echo $resp | ./jq '.processGroupFlow.flow.connections[] | {name: .status.sourceName, source: .sourceId, sourceType: .sourceType, destination: .destinationId, destinationType: .destinationType}')
+processGroups=$(echo $processGroups | sed -e 's/FUNNEL/FUNNEL___/g')
+echo $processGroups | ./jq --raw-output '"\(.source)\t\(.sourceType)\t\(.destination)\t\(.destinationType)\t\(.name)"'
+echo -e "\n"
+

@@ -1,0 +1,9 @@
+#! /bin/bash
+
+# getClientID
+config=$(cat config.json)
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+mainPG=$(echo $config | ./jq '.dev.flowProcessGroup' | sed "s/\"//g")
+reqUrl="http://$url/nifi-api/flow/client-id"
+resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+echo $resp

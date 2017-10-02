@@ -1,0 +1,80 @@
+#! /bin/bash
+
+# functions
+
+echo $resp | jq -c '.processGroupFlow.flow.connections[] | {name: .status.sourceName, source: .sourceId, sourceType: .sourceType, destination: .destinationId, destinationType: .destinationType}'
+config=$(cat config.json)
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+# get the processgroup to start from, if no argument, use processgroup from config
+if [ -z "$1" ]; then
+	    echo "You have not specified an ID"
+	    exit 1
+	else
+		mainPG=$1
+fi
+
+
+
+printName () {
+	echo '******************************************************************************'
+	echo $1
+}
+
+getProcessGroups() {
+	printName "PROCESS GROUPS"
+	echo -e "UUID \t\t\t\t\tVERSION\tRUNNING STOPPED FLOWFLS\tNAME"
+	processGroups=$(echo $resp | ./jq '.processGroupFlow.flow.processGroups | .[] | {id:.id,  name: .status.name, flowFilesQueued: .status.aggregateSnapshot.flowFilesQueued, version: .revision.version, runningCount: .runningCount, stoppedCount: .stoppedCount}')
+	echo $processGroups | ./jq --raw-output '"\(.id)\t\(.version)\t\(.runningCount)\t\(.stoppedCount)\t\(.flowFilesQueued)\t\(.name)"'
+	echo -e "\n"
+}
+
+getProcessors() {
+	echo '******************************************************************************'
+	echo 'PROCESSORS                                               '
+	echo -e "UUID \t\t\t\t\tSTATE\tVERSION\tIN\tOUT\tNAME"
+	processors=$(echo $resp | ./jq -c '.processGroupFlow.flow.processors[] | {id: .id, version: .revision.version, state: .component.state, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	echo $processors | ./jq --raw-output '"\(.id)\t\(.state)\t\(.version)\t\(.flowFilesIn)\t\(.flowFilesIn)\t\(.name)"'
+	echo -e "\n"
+}
+
+getInputPorts() {
+	echo '******************************************************************************'
+	echo 'INPUT PORTS                                                               '
+	echo -e "UUID \t\t\t\t\tVERSION\tIN\tOUT\tNAME"
+	processors=$(echo $resp | ./jq -c '.processGroupFlow.flow.inputPorts[] | {id: .id, version: .revision.version, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	echo $processors | ./jq --raw-output '"\(.id)\t\(.version)\t\(.flowFilesIn)\t\(.flowFilesIn)\t\(.name)"'
+	echo -e "\n"
+}
+
+getOutputPorts() {
+	echo '******************************************************************************'
+	echo 'OUTPUT PORTS                                                              '
+	echo -e "UUID \t\t\t\t\tVERSION\tIN\tOUT\tNAME"
+	processors=$(echo $resp | ./jq -c '.processGroupFlow.flow.outputPorts[] | {id: .id, version: .revision.version, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	echo -e $processors | ./jq --raw-output '"\(.id)\t\(.version)\t\(.flowFilesIn)\t\(.flowFilesIn)\t\(.name)"'
+	echo -e "\n"
+}
+
+getProcessorById() {
+if [ "$1" ]; then
+    reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+	resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+fi
+	# echo '******************************************************************************'
+	# echo 'PROCESSORS                                               '
+	# echo -e "UUID \t\t\t\t\tSTATE\tVERSION\tIN\tOUT\tNAME"
+	# processors=$(echo $resp | ./jq -c '.processGroupFlow.flow.processors[] | {id: .id, version: .revision.version, state: .component.state, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	# echo $processors | ./jq --raw-output '"\(.id)\t\(.state)\t\(.version)\t\(.flowFilesIn)\t\(.flowFilesIn)\t\(.name)"'
+	# echo -e "\n"
+}
+
+
+    reqUrl="http://127.0.0.1:8080/nifi-api/processors/bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c"
+	resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+
+
+
+
+
+
