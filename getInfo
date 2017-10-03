@@ -2,8 +2,6 @@
 
 # getInfo
 
-echo $resp | jq -c '.processGroupFlow.flow.connections[] | {name: .status.sourceName, source: .sourceId, sourceType: .sourceType, destination: .destinationId, destinationType: .destinationType}'
-config=$(cat config.json)
 url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
 # get the processgroup to start from, if no argument, use processgroup from config
 if [ -z "$1" ]; then
