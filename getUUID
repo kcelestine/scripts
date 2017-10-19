@@ -2,12 +2,6 @@
 
 # getUUID
 
-if [ -z "$1" ]; then
-    echo "Please input processGroupName or processGroupID"
-  else
-  	./getInfo | grep $1 | cut -f1
-fi
-
 url=$(cat config.json | ./jq '.dev.url' | sed "s/\"//g")
 reqUrl="http://$url/nifi-api/process-groups/root"
 response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
@@ -22,15 +16,74 @@ echo -e "$mainProcessGroupUUID \t $mainProcessGroupVersion \t $mainProcessGroupF
 echo $mainProcessGroupUUID
 echo $mainProcessGroupName # should be Nifi Flow
 
-# Level one information
+#########################
+# Level one information #
+#########################
+
+echo "#########################"
+echo "# Level one information #"
+echo "#########################"
 reqUrl="http://localhost:8080/nifi-api/flow/process-groups/bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c"
 response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
-# Processors
-# processors=$(echo $response | ./jq -c '.processGroupFlow.flow.processors[]')
 
-# # Process Groups
-# processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[]')
+# Processors
+processors=$(echo $response | ./jq -c '.processGroupFlow.flow.processors[]')
+echo $processors
+
+# Process Groups
+#processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups.[] | ')
+processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[] | {type: "PROCESS_GROUP", id:.id,  name: .status.name}')
+echo $processGroups | ./jq --raw-output '"\(.type)\t\(.id)\t\(.name)"'
+
+# send process group IDs to a file for later processing
+echo $processGroups | ./jq --raw-output '"\(.id)"' > pgs
 
 # Connections
-connections=$(echo $response | ./jq '.processGroupFlow.flow.connections | .[]')
-echo $connections | jq
+connections=$(echo $response | ./jq '.processGroupFlow.flow.connections | .[] | {type: "CONNECTION", id: .id, name: .component.name, source: .component.source, destination: .component.destination}')
+echo $connections | ./jq --raw-output '"\(.type)\t\(.id)\tSOURCE\t\(.source.id)\t\(.source.groupId)\t\(.source.type)\t\(.name)"'
+echo $connections | ./jq --raw-output '"\(.type)\t\(.id)\tDEST\t\(.destination.id)\t\(.destination.groupId)\t\(.destination.type)\t\(.name)"'
+
+# Input Ports
+input=$(echo $response | ./jq '.processGroupFlow.flow.inputPorts | .[] | {id: .id, name: .status.name, processGroup: .status.groupId}'
+)
+echo $input
+# Output Ports
+output=$(echo $response | ./jq '.processGroupFlow.flow.outputPorts | .[] | {id: .id, name: .status.name, processGroup: .status.groupId}'
+)
+echo $output
+
+# Funnels
+funnels=$(echo $response | ./jq '.processGroupFlow.flow.outputPorts | .[]')
+
+
+#########################
+# Level two information #
+#########################
+echo "#########################"
+echo "# Level two information #"
+echo "#########################"
+
+# for each process group in pgs, find the following things:
+# processgroups # processors # connections # input # output
+
+cat pgs | while read line
+do
+	#echo $line
+	reqUrl="http://$url/nifi-api/flow/process-groups/$line"
+	response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+	processors=$(echo $response | ./jq -c '.processGroupFlow.flow.processors[] | {id: .id, version: .revision.version, state: .component.state, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	echo $processors | ./jq --raw-output '"PROCESSOR\t\(.id)\t\(.name)"'
+	
+	processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[] | {type: "PROCESS_GROUP", id:.id,  name: .status.name}')
+	echo $processGroups | ./jq --raw-output '"\(.type)\t\(.id)\t\(.name)"'
+
+	# Input Ports
+	input=$(echo $response | ./jq '.processGroupFlow.flow.inputPorts | .[]')
+
+	# Output Ports
+	output=$(echo $response | ./jq '.processGroupFlow.flow.outputPorts | .[]')
+
+	# Funnels
+	funnels=$(echo $response | ./jq '.processGroupFlow.flow.outputPorts | .[]')
+
+done
