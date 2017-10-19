@@ -1,0 +1,15 @@
+#! /bin/bash
+
+config=$(cat config.json)
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+url=127.0.0.1:8080
+mainPG=bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c
+reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+echo -e "UUID \tNAME"
+processGroups=$(echo $resp | ./jq '.processGroupFlow.flow.processGroups | .[] | {id:.id,  name: .status.name, flowFilesQueued: .status.aggregateSnapshot.flowFilesQueued, version: .revision.version, runningCount: .runningCount, stoppedCount: .stoppedCount}')
+echo $processGroups | ./jq --raw-output '"\(.id)\t\(.name)"'
+echo -e "\n"
+
+

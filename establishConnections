@@ -1,0 +1,36 @@
+#!/bin/bash
+
+processGroup1=$1
+processGroup2=$2
+processGroup1="ce502eb3-015e-1000-abbd-6377bd0d0d7b"
+processGroup2="85c3d88f-4578-36d3-220f-57d464628e24"
+mainProcessGroup=""
+
+
+# get connections where first process group is the sourceGroupId
+
+config=$(cat config.json)
+url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+url=127.0.0.1:8080
+mainPG=bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c
+reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+payload=$(printf '{"revision":{"clientId":"30242b10-015f-1000-acdb-5a98231e53b8","version":0},"component":{"name":"","source":{"id":"460f0a90-1542-3726-39ed-9bfa960586e3","groupId":"85c3d88f-4578-36d3-220f-57d464628e24","type":"OUTPUT_PORT"},"destination":{"id":"2b1d7556-015f-1000-d2af-995181883647","groupId":"a57d7d2a-86bd-4b43-ec9f-ff45f5b0a111","type":"INPUT_PORT"},"flowFileExpiration":"0 sec","backPressureDataSizeThreshold":"1 GB","backPressureObjectThreshold":"10000","bends":[],"prioritizers":[]}}' )
+
+#payload=$(echo $resp | ./jq '.processGroupFlow.flow.connections[] | select(.sourceGroupId=="ce502eb3-015e-1000-abbd-6377bd0d0d7b") | {revision: {"clientId":"30797250-015f-1000-252d-b57dbaffacbf", version: .revision.version}, component: {name: .component.name, source: .component.source, destination: .component.destination, flowFileExpiration: .component.flowFileExpiration, backPressureDataSizeThreshold: .component.backPressureDataSizeThreshold, backPressureObjectThreshold: .component.backPressureObjectThreshold, bends: .component.bends, prioritizers: .component.prioritizers}}')
+echo $payload
+#curl 'http://localhost:8080/nifi-api/process-groups/bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c/connections' -H 'Origin: http://localhost:8080' -H 'Accept-Language: en-US,en;q=0.8' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://localhost:8080/nifi/?processGroupId=root&componentIds=85c3d88f-4578-36d3-220f-57d464628e24' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary "$payload"
+#payload=$(printf '{"revision":{"clientId":"30242b10-015f-1000-acdb-5a98231e53b8","version":0},"component":{"name":"","source":{"id":"460f0a90-1542-3726-39ed-9bfa960586e3","groupId":"85c3d88f-4578-36d3-220f-57d464628e24","type":"OUTPUT_PORT"},"destination":{"id":"2b1d7556-015f-1000-d2af-995181883647","groupId":"a57d7d2a-86bd-4b43-ec9f-ff45f5b0a111","type":"INPUT_PORT"},"flowFileExpiration":"0 sec","backPressureDataSizeThreshold":"1 GB","backPressureObjectThreshold":"10000","bends":[],"prioritizers":[]}}' )
+
+# add connection to second pg
+
+
+# get connections where first process group is the destinationID
+
+# test for connections
+
+# add connestion to second pg
+
+# test for connections
+
+# remove old pg

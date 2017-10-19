@@ -2,18 +2,44 @@
 
 # functions
 
-echo $resp | jq -c '.processGroupFlow.flow.connections[] | {name: .status.sourceName, source: .sourceId, sourceType: .sourceType, destination: .destinationId, destinationType: .destinationType}'
-config=$(cat config.json)
-url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
-# get the processgroup to start from, if no argument, use processgroup from config
-if [ -z "$1" ]; then
-	    echo "You have not specified an ID"
+# echo $resp | jq -c '.processGroupFlow.flow.connections[] | {name: .status.sourceName, source: .sourceId, sourceType: .sourceType, destination: .destinationId, destinationType: .destinationType}'
+# config=$(cat config.json)
+# url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+# # get the processgroup to start from, if no argument, use processgroup from config
+# if [ -z "$1" ]; then
+# 	    echo "You have not specified an ID"
+# 	    exit 1
+# 	else
+# 		mainPG=$1
+# fi
+
+# getConfig() {
+# 	cat config.json
+# }
+
+# getUrl() {
+# 	echo $config | ./jq '.dev.url' | sed "s/\"//g")
+# }
+
+getResponse() {
+	config=$(cat config.json)
+	url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+	echo -e "Using NIFI  @ \t $url"
+	mainPG=$(echo $config | ./jq '.dev.mainPG' | sed "s/\"//g")
+	echo -e "Common Flow @ \t $mainPG"
+	reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+	echo -e "Request URL @ \t $reqUrl"
+	resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+	responseCode=$(curl --silent -I -X GET -H "Connection: keep-alive" $reqUrl | head -n1 | cut -d" " -f2)
+	echo $responseCode
+	if [ $responseCode -ne 200 ]; then
+	    echo "Something is not right with the request, please check configuration"
 	    exit 1
 	else
-		mainPG=$1
-fi
-
-
+		response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl )
+		echo $response | ./jq
+	fi
+}
 
 printName () {
 	echo '******************************************************************************'
@@ -57,8 +83,9 @@ getOutputPorts() {
 
 getProcessorById() {
 if [ "$1" ]; then
-    reqUrl="http://$url/nifi-api/flow/process-groups/$mainPG"
+    reqUrl="http://$url/nifi-api/flow/process-groups/$1"
 	resp=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+	echo resp | ./jq
 fi
 	# echo '******************************************************************************'
 	# echo 'PROCESSORS                                               '

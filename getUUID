@@ -1,0 +1,36 @@
+#! /bin/bash
+
+# getUUID
+
+if [ -z "$1" ]; then
+    echo "Please input processGroupName or processGroupID"
+  else
+  	./getInfo | grep $1 | cut -f1
+fi
+
+url=$(cat config.json | ./jq '.dev.url' | sed "s/\"//g")
+reqUrl="http://$url/nifi-api/process-groups/root"
+response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+mainProcessGroupUUID=$(echo $response | jq '.status.id')
+mainProcessGroupName=$(echo $response | jq '.status.name')
+mainProcessGroupVersion=$(echo $response | jq '.revision.version')
+mainProcessGroupFlowFilesQueued=$(echo $response | jq '.status.aggregateSnapshot.flowFilesQueued')
+
+echo -e "UUID\t\t\t\t\tVERSION  FLOWFLS NAME" > nifiComponents
+echo -e "$mainProcessGroupUUID \t $mainProcessGroupVersion \t $mainProcessGroupFlowFilesQueued \t $mainProcessGroupName" >> nifiComponents
+echo $mainProcessGroupUUID
+echo $mainProcessGroupName # should be Nifi Flow
+
+# Level one information
+reqUrl="http://localhost:8080/nifi-api/flow/process-groups/bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c"
+response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+# Processors
+# processors=$(echo $response | ./jq -c '.processGroupFlow.flow.processors[]')
+
+# # Process Groups
+# processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[]')
+
+# Connections
+connections=$(echo $response | ./jq '.processGroupFlow.flow.connections | .[]')
+echo $connections | jq

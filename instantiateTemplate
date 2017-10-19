@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# where you want template to go
+# processGroup=$1
+processGroup="bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c"
+
+# which template to use
+#template=$2
+template="ddd9aeab-f02b-4fa5-85d4-22ef3295dcfe"
+originX=""
+originY=""
+url="http://localhost:8080/nifi-api/process-groups/$processGroup/template-instance"
+payload=$(printf '{"templateId":"%s","originX":-1200.237325946115,"originY":-1200.3140795977167}' "$template")
+curl "http://localhost:8080/nifi-api/process-groups/$processGroup/template-instance" -H 'Origin: http://localhost:8080' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.8' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://localhost:8080/nifi/' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary "$payload" --compressed
