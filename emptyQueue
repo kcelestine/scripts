@@ -1,0 +1,45 @@
+#! /bin/bash
+
+# emptyQueue
+# input : list of connection uuids
+# output : list of connection uuids where queues have been empty
+
+if [[ $# -eq 0 ]] ; then
+  echo 'ERR: Empty Arguments. Please enter uuids'
+  echo "Usage: "
+  echo "  ./emptyQueue uuid1 uuid2 uuid3"
+  exit 0
+fi
+
+url=$(cat config.json | ./jq '.dev.url' | sed "s/\"//g")
+reqUrl="http://$url/nifi-api/process-groups/root"
+response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+mainProcessGroupUUID=$(echo $response | jq '.status.id')
+mainProcessGroupName=$(echo $response | jq '.status.name')
+mainProcessGroupVersion=$(echo $response | jq '.revision.version')
+mainProcessGroupFlowFilesQueued=$(echo $response | jq '.status.aggregateSnapshot.flowFilesQueued')
+
+for var in "$@"
+do
+	echo "**************"
+    reqUrl="http://$url/nifi-api/flowfile-queues/$var/listing-requests/"
+	response=$(curl --silent -X POST -H "Connection: keep-alive" $reqUrl)
+    connections=$(echo $response | ./jq ' {requestID: .listingRequest.id, bytes: .listingRequest.queueSize.byteCount, flowfiles: .listingRequest.queueSize.objectCount}')
+	queueSize=$(echo $connections | ./jq --raw-output '"\(.flowfiles)"')
+    echo "Queue Size Before: $queueSize"
+
+    
+    #curl 'http://localhost:8080/nifi-api/flowfile-queues/015f1003-0572-1b1d-5623-3c6418347c9a/drop-requests' -X POST
+    dropReqUrl="http://$url/nifi-api/flowfile-queues/$var/drop-requests"
+	dropResponse=$(curl -v -X POST -H "Connection: keep-alive" $dropReqUrl)
+	reqUrl=$(echo $dropResponse | jq '.dropRequest.uri')
+	echo $reqUrl
+	reqUrl="http://$url/nifi-api/flowfile-queues/$var/listing-requests/"
+	response=$(curl --silent -X POST -H "Connection: keep-alive" $reqUrl)
+    connections=$(echo $response | ./jq ' {requestID: .listingRequest.id, bytes: .listingRequest.queueSize.byteCount, flowfiles: .listingRequest.queueSize.objectCount}')
+	queueSize=$(echo $connections | ./jq --raw-output '"\(.flowfiles)"')
+    echo "Queue Size After: $queueSize"
+done
+
+

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+source functions
+
+package=""  # Default to empty package
+target=""  # Default to empty target
+
+# Parse options to the `pip` command
+while getopts ":h:p:g:" opt; do
+  case ${opt} in
+    h )
+      echo "Usage:"
+      echo "    pip -h                      Display this help message."
+      echo "    pip install <package>       Install <package>."
+      exit 0
+      ;;
+    p )
+      echo "Starting Processor"
+      processorID=$2
+      config=$(cat config.json)
+      url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+      mainPG=$(echo $config | ./jq '.dev.flowProcessGroup' | sed "s/\"//g")
+      reqUrl="http://$url/nifi-api/processors/$id"
+      clientID="367a9bd2-015f-1000-dcdd-2e2e896b59d8"
+      processorID="ce509ced-015e-1000-b2e9-0ac7db64d0e8"
+      version="$(./getInformation | grep ce509ced-015e-1000-b2e9-0ac7db64d0e8 | cut -f3)"
+      payload=$(printf '{"revision":{"clientId":"%s","version":"%s"},"component":{"id":"%s","state":"RUNNING"}}' "$clientID" "$version" "$processorID")
+      processGroups=$(echo $processGroups | sed -e 's/FUNNEL/FUNNEL___/g')
+      resp=$(curl --silent "http://$url/nifi-api/processors/$processorID" -X PUT -H "Origin: http://$url" -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.8' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H "Referer: http://$url/nifi/?processGroupId=root&componentIds=$processGroupID" -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary "$payload" --compressed)
+      if [[ $resp =~ "RUNNING" ]]; then
+        echo "RUNNING SUCCESSFULLY";
+      else
+        echo "SOMETHING AINT RIGHT";
+      fi
+      exit 0
+      ;;
+    g )
+      echo "Starting Process Group"
+      id=$2
+      processGroupID=$2
+      config=$(cat config.json)
+      url=$(echo $config | ./jq '.dev.url' | sed "s/\"//g")
+      mainPG=$(echo $config | ./jq '.dev.flowProcessGroup' | sed "s/\"//g")
+      reqUrl="http://$url/nifi-api/flow/process-groups/$processGroupID"
+      payload=$(printf '{"id":"%s","state":"RUNNING"}' "$processGroupID")
+      resp=$(curl --silent "http://$url/nifi-api/flow/process-groups/$processGroupID" -X PUT -H "Origin: http://$url" -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: en-US,en;q=0.8' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H "Referer: http://$url/nifi/?processGroupId=root&componentIds=$processGroupID" -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary "$payload" --compressed)
+      if [[ $resp =~ "RUNNING" ]]; then
+        echo "RUNNING SUCCESSFULLY";
+      else
+        echo "SOMETHING AINT RIGHT";
+      fi
+      exit 0
+      ;;
+   \? )
+     echo "Invalid Option: -$OPTARG" 1>&2
+     exit 1
+     ;;
+  esac
+done
+
+# youtube-dl -cik --extract-audio --audio-format mp3 https://www.youtube.com/watch?v=IeaBfM3TdHQ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

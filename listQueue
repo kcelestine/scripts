@@ -1,0 +1,61 @@
+#! /bin/bash
+
+# listQueue
+# input : nifi url, mainProcessorGroup
+# output : list of connection uuids where queues have been empty
+
+url=$(cat config.json | ./jq '.dev.url' | sed "s/\"//g")
+reqUrl="http://$url/nifi-api/process-groups/root"
+response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+
+mainProcessGroupUUID=$(echo $response | jq '.status.id')
+mainProcessGroupName=$(echo $response | jq '.status.name')
+mainProcessGroupVersion=$(echo $response | jq '.revision.version')
+mainProcessGroupFlowFilesQueued=$(echo $response | jq '.status.aggregateSnapshot.flowFilesQueued')
+
+echo $mainProcessGroupUUID
+echo $mainProcessGroupName # should be Nifi Flow
+url='127.0.0.1:8080'
+mainProcessGroupUUID=$(cat config.json | ./jq '.dev.mainPG' | sed "s/\"//g")
+#mainProcessGroupUUID='bf52ef5d-015e-1000-bdaf-b1a5f8dcf46c'
+
+#########################
+# Level one information #
+#########################
+echo "#########################"
+echo "# Level one information #"
+echo "#########################"
+reqUrl="http://localhost:8080/nifi-api/flow/process-groups/$mainProcessGroupUUID"
+response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+connections=$(echo $response | ./jq '.processGroupFlow.flow.connections | .[] | {type: "CONNECTION", id: .id, flowFiles: .status.aggregateSnapshot.flowFilesQueued}')
+echo $connections | ./jq --raw-output '"\(.type)\t\(.id)\t\(.flowFiles)"'
+
+#########################
+# Level two information #
+#########################
+echo "#########################"
+echo "# Level two information #"
+echo "#########################"
+
+# send process group IDs to a file for later processing
+processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[] | {type: "PROCESS_GROUP", id:.id,  name: .status.name}')
+echo $processGroups | ./jq --raw-output '"\(.id)"' > pgs
+
+cat pgs | while read line
+do
+	#echo $line
+	reqUrl="http://$url/nifi-api/flow/process-groups/$line"
+	response=$(curl --silent -X GET -H "Connection: keep-alive" $reqUrl)
+	processors=$(echo $response | ./jq -c '.processGroupFlow.flow.processors[] | {id: .id, version: .revision.version, state: .component.state, name: .status.name, flowFilesIn: .status.aggregateSnapshot.flowFilesIn, flowFilesOut: .status.aggregateSnapshot.flowFilesOut}')
+	#echo $processors | ./jq --raw-output '"PROCESSOR\t\(.id)\t\(.name)"'
+	#echo $processors | ./jq --raw-output '"\(.id)\t\(.state)\t\(.version)\t\(.flowFilesIn)\t\(.flowFilesIn)\t\(.name)"'
+	#different script for id information
+	processGroups=$(echo $response | ./jq '.processGroupFlow.flow.processGroups | .[] | {type: "PROCESS_GROUP", id:.id,  name: .status.name}')
+	#echo $processGroups | ./jq --raw-output '"\(.type)\t\(.id)\t\(.name)"'
+connections=$(echo $response | ./jq '.processGroupFlow.flow.connections | .[] | {type: "CONNECTION", id: .id, flowFiles: .status.aggregateSnapshot.flowFilesQueued}')
+echo $connections | ./jq --raw-output '"\(.type)\t\(.id)\t\(.flowFiles)"'
+connections=$(echo $response | ./jq '.processGroupFlow.flow.connections')
+
+done
+
+rm pgs
